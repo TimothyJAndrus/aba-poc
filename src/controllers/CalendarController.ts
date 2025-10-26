@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { CalendarIntegrationService } from '../services/CalendarIntegrationService';
-import { SessionRepository } from '../database/repositories/ScheduleEventRepository';
+import { SessionRepository } from '../database/repositories/SessionRepository';
 import { UserRepository } from '../database/repositories/UserRepository';
 import { ClientRepository } from '../database/repositories/ClientRepository';
 import { RBTRepository } from '../database/repositories/RBTRepository';

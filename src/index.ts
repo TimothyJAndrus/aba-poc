@@ -20,7 +20,9 @@ async function initializeServices() {
     const webSocketService = initializeWebSocketService(server);
     logger.info('WebSocket service initialized successfully');
   } catch (error) {
-    logger.error('Failed to initialize services', { error: error.message });
+    logger.error('Failed to initialize services', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
     process.exit(1);
   }
 }
@@ -31,8 +33,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`, { 
-    ip: req.ip, 
+  logger.info(`${req.method} ${req.path}`, {
+    ip: req.ip,
     userAgent: req.get('User-Agent'),
     body: req.method !== 'GET' ? req.body : undefined
   });
@@ -51,7 +53,9 @@ initializeServices().then(() => {
     logger.info('All services initialized and ready');
   });
 }).catch((error) => {
-  logger.error('Failed to start server', { error: error.message });
+  logger.error('Failed to start server', {
+    error: error instanceof Error ? error.message : 'Unknown error'
+  });
   process.exit(1);
 });
 

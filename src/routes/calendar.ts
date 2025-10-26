@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { CalendarController } from '../controllers/CalendarController';
 import { CalendarIntegrationService } from '../services/CalendarIntegrationService';
-import { SessionRepository } from '../database/repositories/ScheduleEventRepository';
+import { SessionRepository } from '../database/repositories/SessionRepository';
 import { UserRepository } from '../database/repositories/UserRepository';
 import { ClientRepository } from '../database/repositories/ClientRepository';
 import { RBTRepository } from '../database/repositories/RBTRepository';
@@ -34,7 +34,7 @@ const calendarController = new CalendarController(
 );
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(authMiddleware.authenticate);
 
 /**
  * @route POST /api/calendar/sessions/:sessionId/events

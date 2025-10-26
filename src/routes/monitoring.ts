@@ -6,7 +6,7 @@ const router = Router();
 const monitoringController = new MonitoringController();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
+router.use(authMiddleware.authenticate);
 
 /**
  * @route GET /api/monitoring/health

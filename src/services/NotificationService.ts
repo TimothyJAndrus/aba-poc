@@ -1,5 +1,5 @@
 import Bull, { Queue, Job } from 'bull';
-import Redis from 'redis';
+import { createClient } from 'redis';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,7 +44,7 @@ export class NotificationService {
       clientOptions.password = config.redis.password;
     }
 
-    this.redisClient = Redis.createClient(clientOptions);
+    this.redisClient = createClient(clientOptions);
 
     this.redisClient.on('error', (error) => {
       logger.error('Redis connection error:', error);
