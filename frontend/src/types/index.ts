@@ -350,13 +350,6 @@ export interface AuthState {
 }
 
 // WebSocket and real-time types
-export interface SystemAlert {
-  id: string;
-  type: 'info' | 'warning' | 'error' | 'success';
-  message: string;
-  timestamp: Date;
-  dismissed?: boolean;
-}
 
 export interface ActivityItem {
   id: string;

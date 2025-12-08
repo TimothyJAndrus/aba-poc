@@ -1,6 +1,8 @@
 import { apiService } from './api';
 import type { LoginCredentials, AuthResponse, User } from '../types';
 
+type UserRole = 'admin' | 'employee' | 'client' | 'coordinator';
+
 class AuthService {
   private readonly TOKEN_KEY = 'authToken';
   private readonly REFRESH_TOKEN_KEY = 'refreshToken';
@@ -12,17 +14,21 @@ class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await apiService.post<AuthResponse>('/auth/login', credentials);
-      
+      const response = await apiService.post<AuthResponse>(
+        '/auth/login',
+        credentials
+      );
+
       // Store tokens and user data
       this.setTokens(response.token, response.refreshToken);
       this.setUser(response.user);
-      
+
       // Set up automatic token refresh
       this.scheduleTokenRefresh(response.expiresIn);
-      
+
       return response;
     } catch (error) {
+      console.error('Login failed:', error);
       throw new Error('Invalid credentials');
     }
   }
@@ -47,7 +53,7 @@ class AuthService {
    */
   async refreshToken(): Promise<AuthResponse> {
     const refreshToken = this.getRefreshToken();
-    
+
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -56,19 +62,21 @@ class AuthService {
       const response = await apiService.post<AuthResponse>('/auth/refresh', {
         refreshToken,
       });
-      
+
       // Update stored tokens and user data
       this.setTokens(response.token, response.refreshToken);
       this.setUser(response.user);
-      
+
       // Schedule next refresh
       this.scheduleTokenRefresh(response.expiresIn);
-      
+
       return response;
     } catch (error) {
       // If refresh fails, clear auth data and redirect to login
       this.clearAuthData();
-      throw new Error('Token refresh failed');
+      throw new Error(
+        `Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -106,15 +114,23 @@ class AuthService {
   /**
    * Get user role for authorization checks
    */
-  getUserRole(): 'admin' | 'employee' | 'client' | null {
+  getUserRole(): UserRole | null {
     const user = this.getUser();
-    return user?.role || null;
+    const validRoles: UserRole[] = [
+      'admin',
+      'employee',
+      'client',
+      'coordinator',
+    ];
+    return user?.role && validRoles.includes(user.role as UserRole)
+      ? (user.role as UserRole)
+      : null;
   }
 
   /**
    * Check if user has specific role
    */
-  hasRole(role: 'admin' | 'employee' | 'client'): boolean {
+  hasRole(role: UserRole): boolean {
     return this.getUserRole() === role;
   }
 
@@ -147,7 +163,7 @@ class AuthService {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
-    
+
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
       this.refreshTimer = null;
@@ -164,13 +180,13 @@ class AuthService {
 
     // Refresh token 5 minutes before expiration
     const refreshTime = (expiresIn - 300) * 1000; // Convert to milliseconds
-    
+
     if (refreshTime > 0) {
       this.refreshTimer = setTimeout(() => {
-        this.refreshToken().catch((error) => {
+        this.refreshToken().catch(error => {
           console.error('Automatic token refresh failed:', error);
           // Redirect to login page or dispatch logout action
-          window.location.href = '/login';
+          globalThis.location.href = '/login';
         });
       }, refreshTime);
     }
@@ -183,10 +199,14 @@ class AuthService {
     // Check if user is already authenticated and set up refresh timer
     if (this.isAuthenticated()) {
       // Try to refresh token to ensure it's still valid
-      this.refreshToken().catch(() => {
-        // If refresh fails, clear auth data
-        this.clearAuthData();
-      });
+      // Only attempt if we have a refresh token
+      const refreshToken = this.getRefreshToken();
+      if (refreshToken) {
+        this.refreshToken().catch(() => {
+          // If refresh fails, clear auth data
+          this.clearAuthData();
+        });
+      }
     }
   }
 }
