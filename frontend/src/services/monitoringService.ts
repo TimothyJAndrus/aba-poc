@@ -1,10 +1,12 @@
 import { apiService } from './api';
-import {
+import type {
   SystemMetrics,
   ApplicationMetrics,
   SystemAlert,
   AlertThreshold,
 } from '../types';
+
+type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 export class MonitoringService {
   // Health and status
@@ -28,7 +30,10 @@ export class MonitoringService {
     endTime?: string;
     interval?: '1m' | '5m' | '15m' | '1h' | '1d';
   }): Promise<SystemMetrics[]> {
-    return apiService.get<SystemMetrics[]>('/monitoring/metrics/system', params);
+    return apiService.get<SystemMetrics[]>(
+      '/monitoring/metrics/system',
+      params
+    );
   }
 
   async getApplicationMetrics(params?: {
@@ -36,7 +41,10 @@ export class MonitoringService {
     endTime?: string;
     interval?: '1m' | '5m' | '15m' | '1h' | '1d';
   }): Promise<ApplicationMetrics[]> {
-    return apiService.get<ApplicationMetrics[]>('/monitoring/metrics/application', params);
+    return apiService.get<ApplicationMetrics[]>(
+      '/monitoring/metrics/application',
+      params
+    );
   }
 
   // Alerts
@@ -47,7 +55,7 @@ export class MonitoringService {
   async getAllAlerts(params?: {
     page?: number;
     limit?: number;
-    severity?: 'low' | 'medium' | 'high' | 'critical';
+    severity?: AlertSeverity;
     acknowledged?: boolean;
     startDate?: string;
     endDate?: string;
@@ -61,18 +69,30 @@ export class MonitoringService {
     return apiService.get('/monitoring/alerts/all', params);
   }
 
-  async acknowledgeAlert(alertId: string, data: {
-    acknowledgedBy: string;
-    notes?: string;
-  }): Promise<SystemAlert> {
-    return apiService.post<SystemAlert>(`/monitoring/alerts/${alertId}/acknowledge`, data);
+  async acknowledgeAlert(
+    alertId: string,
+    data: {
+      acknowledgedBy: string;
+      notes?: string;
+    }
+  ): Promise<SystemAlert> {
+    return apiService.post<SystemAlert>(
+      `/monitoring/alerts/${alertId}/acknowledge`,
+      data
+    );
   }
 
-  async resolveAlert(alertId: string, data: {
-    resolvedBy: string;
-    resolution: string;
-  }): Promise<SystemAlert> {
-    return apiService.post<SystemAlert>(`/monitoring/alerts/${alertId}/resolve`, data);
+  async resolveAlert(
+    alertId: string,
+    data: {
+      resolvedBy: string;
+      resolution: string;
+    }
+  ): Promise<SystemAlert> {
+    return apiService.post<SystemAlert>(
+      `/monitoring/alerts/${alertId}/resolve`,
+      data
+    );
   }
 
   // Alert thresholds
@@ -84,21 +104,29 @@ export class MonitoringService {
     metric: string;
     threshold: number;
     operator: 'gt' | 'lt' | 'eq';
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    severity: AlertSeverity;
     description?: string;
   }): Promise<AlertThreshold> {
-    return apiService.post<AlertThreshold>('/monitoring/alerts/thresholds', data);
+    return apiService.post<AlertThreshold>(
+      '/monitoring/alerts/thresholds',
+      data
+    );
   }
 
-  async updateAlertThreshold(metric: string, data: {
-    threshold?: number;
-    operator?: 'gt' | 'lt' | 'eq';
-    severity?: 'low' | 'medium' | 'high' | 'critical';
-    description?: string;
-  }): Promise<AlertThreshold> {
-    return apiService.put<AlertThreshold>(`/monitoring/alerts/thresholds/${metric}`, data);
+  async updateAlertThreshold(
+    metric: string,
+    data: {
+      threshold?: number;
+      operator?: 'gt' | 'lt' | 'eq';
+      severity: AlertSeverity;
+      description?: string;
+    }
+  ): Promise<AlertThreshold> {
+    return apiService.put<AlertThreshold>(
+      `/monitoring/alerts/thresholds/${metric}`,
+      data
+    );
   }
-
   async removeAlertThreshold(metric: string): Promise<void> {
     return apiService.delete<void>(`/monitoring/alerts/thresholds/${metric}`);
   }
@@ -143,11 +171,14 @@ export class MonitoringService {
     p99ResponseTime: number;
     errorRate: number;
     throughput: number;
-    byEndpoint: Record<string, {
-      averageResponseTime: number;
-      errorRate: number;
-      requestCount: number;
-    }>;
+    byEndpoint: Record<
+      string,
+      {
+        averageResponseTime: number;
+        errorRate: number;
+        requestCount: number;
+      }
+    >;
   }> {
     return apiService.get('/monitoring/performance', params);
   }
@@ -167,7 +198,7 @@ export class MonitoringService {
       level: 'error' | 'warn' | 'info';
       message: string;
       stack?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }[];
     total: number;
     page: number;
@@ -178,16 +209,18 @@ export class MonitoringService {
   }
 
   // Real-time monitoring
-  async subscribeToMetrics(callback: (metrics: SystemMetrics & ApplicationMetrics) => void): Promise<() => void> {
+  async subscribeToMetrics(
+    callback: (metrics: SystemMetrics & ApplicationMetrics) => void
+  ): Promise<() => void> {
     // This would typically use WebSocket or Server-Sent Events
     // For now, we'll implement polling
     const interval = setInterval(async () => {
       try {
         const [systemMetrics, appMetrics] = await Promise.all([
           this.getSystemMetrics({ interval: '1m' }),
-          this.getApplicationMetrics({ interval: '1m' })
+          this.getApplicationMetrics({ interval: '1m' }),
         ]);
-        
+
         if (systemMetrics.length > 0 && appMetrics.length > 0) {
           callback({ ...systemMetrics[0], ...appMetrics[0] });
         }
@@ -206,14 +239,19 @@ export class MonitoringService {
     format: 'csv' | 'json' | 'xlsx';
     metrics: ('system' | 'application' | 'alerts')[];
   }): Promise<Blob> {
-    const response = await fetch(`${apiService.getCurrentToken() ? 'authenticated' : 'public'}/monitoring/export`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiService.getCurrentToken() && { Authorization: `Bearer ${apiService.getCurrentToken()}` })
-      },
-      body: JSON.stringify(params)
-    });
+    const response = await fetch(
+      `${apiService.getCurrentToken() ? 'authenticated' : 'public'}/monitoring/export`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiService.getCurrentToken() && {
+            Authorization: `Bearer ${apiService.getCurrentToken()}`,
+          }),
+        },
+        body: JSON.stringify(params),
+      }
+    );
 
     if (!response.ok) {
       throw new Error('Failed to export metrics');

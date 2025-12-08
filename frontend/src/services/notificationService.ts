@@ -15,7 +15,7 @@ import type { NotificationSettings } from '../types';
 
 class NotificationService {
   private toastQueue: ToastNotification[] = [];
-  private maxToasts = 5;
+  private readonly maxToasts = 5;
 
   // Initialize the service
   async initialize() {
@@ -27,18 +27,23 @@ class NotificationService {
   // Load notifications from backend
   private async loadNotificationsFromBackend() {
     try {
-      const { notificationApiService } = await import('./notificationApiService');
+      const { notificationApiService } = await import(
+        './notificationApiService'
+      );
       const { authService } = await import('./authService');
-      
-      const currentUser = authService.getCurrentUser();
+
+      const currentUser = authService.getUser();
       if (!currentUser) {
         return;
       }
 
-      const response = await notificationApiService.getNotificationsByRecipient(currentUser.id, {
-        limit: 50,
-        page: 1,
-      });
+      const response = await notificationApiService.getNotificationsByRecipient(
+        currentUser.id,
+        {
+          limit: 50,
+          page: 1,
+        }
+      );
 
       // Convert backend notifications to UI format
       const uiNotifications = response.data.map(backendNotification => ({
@@ -54,7 +59,10 @@ class NotificationService {
       }));
 
       // Update the store with backend notifications
-      store.dispatch({ type: 'notifications/updateNotifications', payload: uiNotifications });
+      store.dispatch({
+        type: 'notifications/updateNotifications',
+        payload: uiNotifications,
+      });
       this.saveNotificationsToStorage();
     } catch (error) {
       console.error('Failed to load notifications from backend:', error);
@@ -62,7 +70,9 @@ class NotificationService {
   }
 
   // Map backend notification types to UI types
-  private mapNotificationTypeToUI(backendType: string): 'info' | 'success' | 'warning' | 'error' {
+  private mapNotificationTypeToUI(
+    backendType: string
+  ): 'info' | 'success' | 'warning' | 'error' {
     switch (backendType) {
       case 'session_scheduled':
       case 'session_reminder':
@@ -105,11 +115,16 @@ class NotificationService {
       if (stored) {
         const notifications = JSON.parse(stored);
         // Convert timestamp strings back to Date objects
-        const parsedNotifications = notifications.map((n: any) => ({
-          ...n,
-          timestamp: new Date(n.timestamp),
-        }));
-        store.dispatch({ type: 'notifications/updateNotifications', payload: parsedNotifications });
+        const parsedNotifications = notifications.map(
+          (n: { timestamp: string } & Omit<Notification, 'timestamp'>) => ({
+            ...n,
+            timestamp: new Date(n.timestamp),
+          })
+        );
+        store.dispatch({
+          type: 'notifications/updateNotifications',
+          payload: parsedNotifications,
+        });
       }
     } catch (error) {
       console.error('Failed to load notifications from storage:', error);
@@ -188,11 +203,14 @@ class NotificationService {
   // Update notification settings
   updateSettings(settings: Partial<NotificationSettings>) {
     store.dispatch(updateSettings(settings));
-    
+
     // Save to localStorage
     try {
       const currentSettings = store.getState().notifications.settings;
-      localStorage.setItem('notificationSettings', JSON.stringify(currentSettings));
+      localStorage.setItem(
+        'notificationSettings',
+        JSON.stringify(currentSettings)
+      );
     } catch (error) {
       console.error('Failed to save notification settings:', error);
     }
@@ -215,13 +233,17 @@ class NotificationService {
   }
 
   // Sync settings with backend using the new API service
-  private async syncSettingsWithBackend(settings: Partial<NotificationSettings>) {
+  private async syncSettingsWithBackend(
+    settings: Partial<NotificationSettings>
+  ) {
     try {
       // Import the notification API service dynamically to avoid circular dependencies
-      const { notificationApiService } = await import('./notificationApiService');
+      const { notificationApiService } = await import(
+        './notificationApiService'
+      );
       const { authService } = await import('./authService');
-      
-      const currentUser = authService.getCurrentUser();
+
+      const currentUser = authService.getUser();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
@@ -250,6 +272,42 @@ class NotificationService {
               reminder2h: true,
             },
           },
+          session_cancelled: {
+            email: settings.scheduleChanges,
+            push: settings.push,
+            timing: {
+              immediate: true,
+              reminder24h: false,
+              reminder2h: false,
+            },
+          },
+          session_rescheduled: {
+            email: settings.scheduleChanges,
+            push: settings.push,
+            timing: {
+              immediate: true,
+              reminder24h: settings.reminders,
+              reminder2h: settings.reminders,
+            },
+          },
+          rbt_assignment_changed: {
+            email: settings.scheduleChanges,
+            push: settings.push,
+            timing: {
+              immediate: true,
+              reminder24h: false,
+              reminder2h: false,
+            },
+          },
+          team_updated: {
+            email: settings.scheduleChanges,
+            push: settings.push,
+            timing: {
+              immediate: true,
+              reminder24h: false,
+              reminder2h: false,
+            },
+          },
           system_alert: {
             email: settings.systemAlerts,
             push: settings.systemAlerts,
@@ -262,7 +320,10 @@ class NotificationService {
         },
       };
 
-      await notificationApiService.updateUserNotificationPreferences(currentUser.id, backendSettings);
+      await notificationApiService.updateUserNotificationPreferences(
+        currentUser.id,
+        backendSettings
+      );
     } catch (error) {
       console.error('Failed to sync notification settings:', error);
       // Show error toast
@@ -277,7 +338,7 @@ class NotificationService {
 
   // Request notification permission for browser notifications
   async requestNotificationPermission(): Promise<boolean> {
-    if (!('Notification' in window)) {
+    if (!('Notification' in globalThis)) {
       console.warn('This browser does not support notifications');
       return false;
     }
@@ -357,12 +418,14 @@ class NotificationService {
 
   // Schedule reminder notifications
   scheduleReminder(sessionId: string, sessionTime: Date, reminderMinutes = 15) {
-    const reminderTime = new Date(sessionTime.getTime() - reminderMinutes * 60 * 1000);
+    const reminderTime = new Date(
+      sessionTime.getTime() - reminderMinutes * 60 * 1000
+    );
     const now = new Date();
 
     if (reminderTime > now) {
       const timeoutMs = reminderTime.getTime() - now.getTime();
-      
+
       setTimeout(() => {
         this.addNotification({
           id: `reminder-${sessionId}`,

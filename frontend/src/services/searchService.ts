@@ -8,7 +8,7 @@ export interface SearchResult {
   subtitle?: string;
   description?: string;
   url?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   relevanceScore?: number;
 }
 
@@ -59,10 +59,13 @@ export interface SearchHistory {
 }
 
 class SearchService {
-  private cache = new Map<string, { data: SearchResponse; timestamp: number }>();
+  private readonly cache = new Map<
+    string,
+    { data: SearchResponse; timestamp: number }
+  >();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   private readonly DEBOUNCE_DELAY = 300; // 300ms
-  private debounceTimer: NodeJS.Timeout | null = null;
+  private debounceTimer: number | null = null;
   private searchHistory: SearchHistory[] = [];
   private savedSearches: SavedSearch[] = [];
 
@@ -103,7 +106,7 @@ class SearchService {
    */
   async search(query: SearchQuery): Promise<SearchResponse> {
     const cacheKey = this.generateCacheKey(query);
-    
+
     // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
@@ -114,7 +117,7 @@ class SearchService {
 
     try {
       const response = await apiService.post<SearchResponse>('/search', query);
-      
+
       const searchTime = Date.now() - startTime;
       const enhancedResponse = {
         ...response,
@@ -206,7 +209,7 @@ class SearchService {
    */
   async saveSearch(name: string, query: SearchQuery): Promise<SavedSearch> {
     const savedSearch: SavedSearch = {
-      id: `saved_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `saved_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       name,
       query,
       createdAt: new Date(),
@@ -224,7 +227,9 @@ class SearchService {
    * Get all saved searches
    */
   getSavedSearches(): SavedSearch[] {
-    return [...this.savedSearches].sort((a, b) => b.lastUsed.getTime() - a.lastUsed.getTime());
+    return [...this.savedSearches].sort(
+      (a, b) => b.lastUsed.getTime() - a.lastUsed.getTime()
+    );
   }
 
   /**
@@ -256,7 +261,9 @@ class SearchService {
    * Get search history
    */
   getSearchHistory(): SearchHistory[] {
-    return [...this.searchHistory].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return [...this.searchHistory].sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    );
   }
 
   /**
@@ -279,11 +286,11 @@ class SearchService {
    */
   getPopularSearches(limit: number = 10): string[] {
     const searchCounts = new Map<string, number>();
-    
-    this.searchHistory.forEach(item => {
+
+    for (const item of this.searchHistory) {
       const count = searchCounts.get(item.query) || 0;
       searchCounts.set(item.query, count + 1);
-    });
+    }
 
     return Array.from(searchCounts.entries())
       .sort((a, b) => b[1] - a[1])
@@ -299,21 +306,23 @@ class SearchService {
 
   private addToHistory(query: string, resultCount: number): void {
     const historyItem: SearchHistory = {
-      id: `history_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `history_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       query: query.trim(),
       timestamp: new Date(),
       resultCount,
     };
 
     // Remove duplicate queries
-    this.searchHistory = this.searchHistory.filter(item => item.query !== query);
-    
+    this.searchHistory = this.searchHistory.filter(
+      item => item.query !== query
+    );
+
     // Add new item to beginning
     this.searchHistory.unshift(historyItem);
-    
+
     // Keep only last 50 searches
     this.searchHistory = this.searchHistory.slice(0, 50);
-    
+
     this.persistSearchHistory();
   }
 
@@ -321,10 +330,12 @@ class SearchService {
     try {
       const stored = localStorage.getItem('searchHistory');
       if (stored) {
-        this.searchHistory = JSON.parse(stored).map((item: any) => ({
-          ...item,
-          timestamp: new Date(item.timestamp),
-        }));
+        this.searchHistory = JSON.parse(stored).map(
+          (item: Omit<SearchHistory, 'timestamp'> & { timestamp: string }) => ({
+            ...item,
+            timestamp: new Date(item.timestamp),
+          })
+        );
       }
     } catch (error) {
       console.error('Error loading search history:', error);
@@ -344,11 +355,18 @@ class SearchService {
     try {
       const stored = localStorage.getItem('savedSearches');
       if (stored) {
-        this.savedSearches = JSON.parse(stored).map((item: any) => ({
-          ...item,
-          createdAt: new Date(item.createdAt),
-          lastUsed: new Date(item.lastUsed),
-        }));
+        this.savedSearches = JSON.parse(stored).map(
+          (
+            item: Omit<SavedSearch, 'createdAt' | 'lastUsed'> & {
+              createdAt: string;
+              lastUsed: string;
+            }
+          ) => ({
+            ...item,
+            createdAt: new Date(item.createdAt),
+            lastUsed: new Date(item.lastUsed),
+          })
+        );
       }
     } catch (error) {
       console.error('Error loading saved searches:', error);

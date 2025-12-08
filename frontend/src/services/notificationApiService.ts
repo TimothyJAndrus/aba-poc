@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import {
+import type {
   NotificationData,
   NotificationTemplate,
   NotificationType,
@@ -15,7 +15,7 @@ export class NotificationApiService {
     recipientEmail?: string;
     recipientPhone?: string;
     channel: NotificationChannel;
-    templateData?: Record<string, any>;
+    templateData?: Record<string, unknown>;
     scheduledFor?: Date;
   }): Promise<NotificationData> {
     return apiService.post<NotificationData>('/notifications/send', data);
@@ -58,18 +58,24 @@ export class NotificationApiService {
     totalDelivered: number;
     totalFailed: number;
     deliveryRate: number;
-    byChannel: Record<NotificationChannel, {
-      sent: number;
-      delivered: number;
-      failed: number;
-      deliveryRate: number;
-    }>;
-    byType: Record<NotificationType, {
-      sent: number;
-      delivered: number;
-      failed: number;
-      deliveryRate: number;
-    }>;
+    byChannel: Record<
+      NotificationChannel,
+      {
+        sent: number;
+        delivered: number;
+        failed: number;
+        deliveryRate: number;
+      }
+    >;
+    byType: Record<
+      NotificationType,
+      {
+        sent: number;
+        delivered: number;
+        failed: number;
+        deliveryRate: number;
+      }
+    >;
   }> {
     return apiService.get('/notifications/stats', params);
   }
@@ -79,8 +85,13 @@ export class NotificationApiService {
     return apiService.get<NotificationTemplate[]>('/notifications/templates');
   }
 
-  async getTemplate(type: NotificationType, channel: NotificationChannel): Promise<NotificationTemplate> {
-    return apiService.get<NotificationTemplate>(`/notifications/templates/${type}/${channel}`);
+  async getTemplate(
+    type: NotificationType,
+    channel: NotificationChannel
+  ): Promise<NotificationTemplate> {
+    return apiService.get<NotificationTemplate>(
+      `/notifications/templates/${type}/${channel}`
+    );
   }
 
   async upsertTemplate(
@@ -93,11 +104,19 @@ export class NotificationApiService {
       isActive: boolean;
     }
   ): Promise<NotificationTemplate> {
-    return apiService.put<NotificationTemplate>(`/notifications/templates/${type}/${channel}`, data);
+    return apiService.put<NotificationTemplate>(
+      `/notifications/templates/${type}/${channel}`,
+      data
+    );
   }
 
-  async deleteTemplate(type: NotificationType, channel: NotificationChannel): Promise<void> {
-    return apiService.delete<void>(`/notifications/templates/${type}/${channel}`);
+  async deleteTemplate(
+    type: NotificationType,
+    channel: NotificationChannel
+  ): Promise<void> {
+    return apiService.delete<void>(
+      `/notifications/templates/${type}/${channel}`
+    );
   }
 
   async setTemplateStatus(
@@ -120,7 +139,10 @@ export class NotificationApiService {
     scheduledAfter?: string;
     scheduledBefore?: string;
   }): Promise<PaginatedResponse<NotificationData>> {
-    return apiService.get<PaginatedResponse<NotificationData>>('/notifications/scheduled', params);
+    return apiService.get<PaginatedResponse<NotificationData>>(
+      '/notifications/scheduled',
+      params
+    );
   }
 
   // Test notifications
@@ -129,7 +151,7 @@ export class NotificationApiService {
     channel: NotificationChannel;
     recipientEmail?: string;
     recipientPhone?: string;
-    templateData?: Record<string, any>;
+    templateData?: Record<string, unknown>;
   }): Promise<{
     success: boolean;
     message: string;
@@ -139,16 +161,20 @@ export class NotificationApiService {
   }
 
   // Bulk operations
-  async bulkSendNotifications(notifications: {
-    type: NotificationType;
-    recipientId: string;
-    recipientEmail?: string;
-    recipientPhone?: string;
-    channel: NotificationChannel;
-    templateData?: Record<string, any>;
-    scheduledFor?: Date;
-  }[]): Promise<NotificationData[]> {
-    return apiService.post<NotificationData[]>('/notifications/bulk-send', { notifications });
+  async bulkSendNotifications(
+    notifications: {
+      type: NotificationType;
+      recipientId: string;
+      recipientEmail?: string;
+      recipientPhone?: string;
+      channel: NotificationChannel;
+      templateData?: Record<string, unknown>;
+      scheduledFor?: Date;
+    }[]
+  ): Promise<NotificationData[]> {
+    return apiService.post<NotificationData[]>('/notifications/bulk-send', {
+      notifications,
+    });
   }
 
   async bulkCancelNotifications(notificationIds: string[]): Promise<{
@@ -164,16 +190,19 @@ export class NotificationApiService {
     emailEnabled: boolean;
     smsEnabled: boolean;
     pushEnabled: boolean;
-    preferences: Record<NotificationType, {
-      email: boolean;
-      sms: boolean;
-      push: boolean;
-      timing: {
-        immediate: boolean;
-        reminder24h: boolean;
-        reminder2h: boolean;
-      };
-    }>;
+    preferences: Record<
+      NotificationType,
+      {
+        email: boolean;
+        sms: boolean;
+        push: boolean;
+        timing: {
+          immediate: boolean;
+          reminder24h: boolean;
+          reminder2h: boolean;
+        };
+      }
+    >;
   }> {
     return apiService.get(`/notifications/preferences/${userId}`);
   }
@@ -184,16 +213,19 @@ export class NotificationApiService {
       emailEnabled?: boolean;
       smsEnabled?: boolean;
       pushEnabled?: boolean;
-      preferences?: Record<NotificationType, {
-        email?: boolean;
-        sms?: boolean;
-        push?: boolean;
-        timing?: {
-          immediate?: boolean;
-          reminder24h?: boolean;
-          reminder2h?: boolean;
-        };
-      }>;
+      preferences?: Record<
+        NotificationType,
+        {
+          email?: boolean;
+          sms?: boolean;
+          push?: boolean;
+          timing?: {
+            immediate?: boolean;
+            reminder24h?: boolean;
+            reminder2h?: boolean;
+          };
+        }
+      >;
     }
   ): Promise<void> {
     return apiService.put(`/notifications/preferences/${userId}`, preferences);
