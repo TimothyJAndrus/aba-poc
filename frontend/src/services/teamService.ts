@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import {
+import type {
   Team,
   CreateTeamRequest,
   UpdateTeamRequest,
@@ -23,34 +23,47 @@ export class TeamService {
     return apiService.put<Team>(`/teams/${teamId}`, data);
   }
 
-  async endTeam(teamId: string, data: {
-    endDate: Date;
-    reason?: string;
-    updatedBy: string;
-  }): Promise<Team> {
+  async endTeam(
+    teamId: string,
+    data: {
+      endDate: Date;
+      reason?: string;
+      updatedBy: string;
+    }
+  ): Promise<Team> {
     return apiService.put<Team>(`/teams/${teamId}/end`, data);
   }
 
   // Team member management
-  async addRBTToTeam(teamId: string, data: {
-    rbtId: string;
-    addedBy: string;
-  }): Promise<Team> {
+  async addRBTToTeam(
+    teamId: string,
+    data: {
+      rbtId: string;
+      addedBy: string;
+    }
+  ): Promise<Team> {
     return apiService.post<Team>(`/teams/${teamId}/rbts`, data);
   }
 
-  async removeRBTFromTeam(teamId: string, rbtId: string, data: {
-    reason?: string;
-    removedBy: string;
-  }): Promise<Team> {
-    return apiService.delete<Team>(`/teams/${teamId}/rbts/${rbtId}`, data);
+  async removeRBTFromTeam(
+    teamId: string,
+    rbtId: string,
+    _data: {
+      reason?: string;
+      removedBy: string;
+    }
+  ): Promise<Team> {
+    return apiService.delete<Team>(`/teams/${teamId}/rbts/${rbtId}`);
   }
 
-  async changePrimaryRBT(teamId: string, data: {
-    newPrimaryRbtId: string;
-    reason?: string;
-    changedBy: string;
-  }): Promise<Team> {
+  async changePrimaryRBT(
+    teamId: string,
+    data: {
+      newPrimaryRbtId: string;
+      reason?: string;
+      changedBy: string;
+    }
+  ): Promise<Team> {
     return apiService.put<Team>(`/teams/${teamId}/primary-rbt`, data);
   }
 
@@ -59,9 +72,12 @@ export class TeamService {
     return apiService.get<TeamHistory>(`/teams/client/${clientId}/history`);
   }
 
-  async getRBTTeams(rbtId: string, params?: {
-    includeInactive?: boolean;
-  }): Promise<Team[]> {
+  async getRBTTeams(
+    rbtId: string,
+    params?: {
+      includeInactive?: boolean;
+    }
+  ): Promise<Team[]> {
     return apiService.get<Team[]>(`/teams/rbt/${rbtId}`, params);
   }
 
@@ -75,17 +91,28 @@ export class TeamService {
     qualifications?: string[];
     excludeRbtIds?: string[];
   }): Promise<RBT[]> {
-    return apiService.get<RBT[]>('/teams/available-rbts', params);
+    const queryParams = params
+      ? (Object.fromEntries(
+          Object.entries({
+            clientId: params.clientId,
+            qualifications: params.qualifications?.join(','),
+            excludeRbtIds: params.excludeRbtIds?.join(','),
+          }).filter(([, v]) => v !== undefined)
+        ) as Record<string, string>)
+      : undefined;
+    return apiService.get<RBT[]>('/teams/available-rbts', queryParams);
   }
 
-  async getTeamsNeedingRBTs(): Promise<{
-    teamId: string;
-    clientId: string;
-    clientName: string;
-    currentRBTCount: number;
-    recommendedRBTCount: number;
-    urgency: 'low' | 'medium' | 'high';
-  }[]> {
+  async getTeamsNeedingRBTs(): Promise<
+    {
+      teamId: string;
+      clientId: string;
+      clientName: string;
+      currentRBTCount: number;
+      recommendedRBTCount: number;
+      urgency: 'low' | 'medium' | 'high';
+    }[]
+  > {
     return apiService.get('/teams/needing-rbts');
   }
 
@@ -99,14 +126,20 @@ export class TeamService {
     rbtId?: string;
     teamId?: string;
   }): Promise<ContinuityScore[]> {
-    return apiService.get<ContinuityScore[]>('/teams/continuity-scores', params);
+    return apiService.get<ContinuityScore[]>(
+      '/teams/continuity-scores',
+      params
+    );
   }
 
   // Team performance metrics
-  async getTeamMetrics(teamId: string, params?: {
-    startDate?: string;
-    endDate?: string;
-  }): Promise<{
+  async getTeamMetrics(
+    teamId: string,
+    params?: {
+      startDate?: string;
+      endDate?: string;
+    }
+  ): Promise<{
     teamId: string;
     totalSessions: number;
     completedSessions: number;
@@ -143,18 +176,22 @@ export class TeamService {
   }
 
   // Bulk operations
-  async bulkUpdateTeams(updates: {
-    teamId: string;
-    updates: UpdateTeamRequest;
-  }[]): Promise<Team[]> {
+  async bulkUpdateTeams(
+    updates: {
+      teamId: string;
+      updates: UpdateTeamRequest;
+    }[]
+  ): Promise<Team[]> {
     return apiService.post<Team[]>('/teams/bulk-update', { updates });
   }
 
-  async bulkAssignRBTs(assignments: {
-    teamId: string;
-    rbtId: string;
-    isPrimary?: boolean;
-  }[]): Promise<Team[]> {
+  async bulkAssignRBTs(
+    assignments: {
+      teamId: string;
+      rbtId: string;
+      isPrimary?: boolean;
+    }[]
+  ): Promise<Team[]> {
     return apiService.post<Team[]>('/teams/bulk-assign', { assignments });
   }
 }

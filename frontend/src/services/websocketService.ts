@@ -83,18 +83,18 @@ export interface NotificationData {
 class WebSocketService {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
+  private readonly maxReconnectAttempts = 5;
+  private readonly reconnectDelay = 1000;
   private connectionListeners: Array<(status: string) => void> = [];
   private heartbeatInterval: number | null = null;
 
   connect(token?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
-      
+
       // Update connection status
       store.dispatch(setConnectionStatus('connecting'));
-      
+
       this.socket = io(wsUrl, {
         auth: {
           token: token || localStorage.getItem('authToken'),
@@ -113,19 +113,19 @@ class WebSocketService {
         resolve();
       });
 
-      this.socket.on('disconnect', (reason) => {
+      this.socket.on('disconnect', reason => {
         console.log('WebSocket disconnected:', reason);
         store.dispatch(setConnectionStatus('disconnected'));
         this.notifyConnectionListeners('disconnected');
         this.stopHeartbeat();
-        
+
         if (reason === 'io server disconnect') {
           // Server initiated disconnect, try to reconnect
           this.handleReconnect();
         }
       });
 
-      this.socket.on('connect_error', (error) => {
+      this.socket.on('connect_error', error => {
         console.error('WebSocket connection error:', error);
         store.dispatch(setConnectionStatus('error'));
         this.notifyConnectionListeners('error');
@@ -134,14 +134,14 @@ class WebSocketService {
       });
 
       // Set up automatic reconnection
-      this.socket.on('reconnect', (attemptNumber) => {
+      this.socket.on('reconnect', attemptNumber => {
         console.log(`WebSocket reconnected after ${attemptNumber} attempts`);
         this.reconnectAttempts = 0;
         store.dispatch(setConnectionStatus('connected'));
         this.notifyConnectionListeners('connected');
       });
 
-      this.socket.on('reconnect_error', (error) => {
+      this.socket.on('reconnect_error', error => {
         console.error('WebSocket reconnection error:', error);
         store.dispatch(setConnectionStatus('error'));
         this.notifyConnectionListeners('error');
@@ -158,13 +158,16 @@ class WebSocketService {
   private handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-      
+      const delay =
+        this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+
       store.dispatch(setConnectionStatus('connecting'));
       this.notifyConnectionListeners('connecting');
-      
+
       setTimeout(() => {
-        console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        console.log(
+          `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`
+        );
         this.socket?.connect();
       }, delay);
     } else {
@@ -180,11 +183,15 @@ class WebSocketService {
   }
 
   removeConnectionListener(listener: (status: string) => void) {
-    this.connectionListeners = this.connectionListeners.filter(l => l !== listener);
+    this.connectionListeners = this.connectionListeners.filter(
+      l => l !== listener
+    );
   }
 
   private notifyConnectionListeners(status: string) {
-    this.connectionListeners.forEach(listener => listener(status));
+    for (const listener of this.connectionListeners) {
+      listener(status);
+    }
   }
 
   // Heartbeat to maintain connection

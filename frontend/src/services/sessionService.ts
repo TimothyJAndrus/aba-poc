@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import {
+import type {
   Session,
   CreateSessionRequest,
   UpdateSessionRequest,
@@ -21,7 +21,10 @@ export class SessionService {
     return apiService.get<Session>(`/schedule/session/${id}`);
   }
 
-  async updateSession(id: string, data: UpdateSessionRequest): Promise<Session> {
+  async updateSession(
+    id: string,
+    data: UpdateSessionRequest
+  ): Promise<Session> {
     return apiService.put<Session>(`/schedule/session/${id}`, data);
   }
 
@@ -39,27 +42,42 @@ export class SessionService {
     startDate?: string;
     endDate?: string;
   }): Promise<PaginatedResponse<Session>> {
-    return apiService.get<PaginatedResponse<Session>>('/schedule/sessions', params);
+    return apiService.get<PaginatedResponse<Session>>(
+      '/schedule/sessions',
+      params
+    );
   }
 
-  async getSessionsByClient(clientId: string, params?: {
-    page?: number;
-    limit?: number;
-    status?: SessionStatus;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<PaginatedResponse<Session>> {
-    return apiService.get<PaginatedResponse<Session>>(`/schedule/sessions/client/${clientId}`, params);
+  async getSessionsByClient(
+    clientId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: SessionStatus;
+      startDate?: string;
+      endDate?: string;
+    }
+  ): Promise<PaginatedResponse<Session>> {
+    return apiService.get<PaginatedResponse<Session>>(
+      `/schedule/sessions/client/${clientId}`,
+      params
+    );
   }
 
-  async getSessionsByRBT(rbtId: string, params?: {
-    page?: number;
-    limit?: number;
-    status?: SessionStatus;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<PaginatedResponse<Session>> {
-    return apiService.get<PaginatedResponse<Session>>(`/schedule/sessions/rbt/${rbtId}`, params);
+  async getSessionsByRBT(
+    rbtId: string,
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: SessionStatus;
+      startDate?: string;
+      endDate?: string;
+    }
+  ): Promise<PaginatedResponse<Session>> {
+    return apiService.get<PaginatedResponse<Session>>(
+      `/schedule/sessions/rbt/${rbtId}`,
+      params
+    );
   }
 
   // Scheduling operations
@@ -75,16 +93,25 @@ export class SessionService {
     preferredDate: string;
     daysToSearch?: number;
   }): Promise<AlternativeOption[]> {
-    return apiService.get<AlternativeOption[]>('/schedule/alternatives', params);
+    return apiService.get<AlternativeOption[]>(
+      '/schedule/alternatives',
+      params
+    );
   }
 
-  async rescheduleSession(sessionId: string, data: {
-    newStartTime: Date;
-    newEndTime: Date;
-    reason: string;
-    updatedBy: string;
-  }): Promise<SchedulingResult> {
-    return apiService.put<SchedulingResult>(`/schedule/session/${sessionId}/reschedule`, data);
+  async rescheduleSession(
+    sessionId: string,
+    data: {
+      newStartTime: Date;
+      newEndTime: Date;
+      reason: string;
+      updatedBy: string;
+    }
+  ): Promise<SchedulingResult> {
+    return apiService.put<SchedulingResult>(
+      `/schedule/session/${sessionId}/reschedule`,
+      data
+    );
   }
 
   // Conflict detection
@@ -124,25 +151,43 @@ export class SessionService {
   }
 
   // Session status updates
-  async markSessionCompleted(sessionId: string, data: {
-    completionNotes?: string;
-    updatedBy: string;
-  }): Promise<Session> {
-    return apiService.patch<Session>(`/schedule/session/${sessionId}/complete`, data);
+  async markSessionCompleted(
+    sessionId: string,
+    data: {
+      completionNotes?: string;
+      updatedBy: string;
+    }
+  ): Promise<Session> {
+    return apiService.patch<Session>(
+      `/schedule/session/${sessionId}/complete`,
+      data
+    );
   }
 
-  async markSessionNoShow(sessionId: string, data: {
-    notes?: string;
-    updatedBy: string;
-  }): Promise<Session> {
-    return apiService.patch<Session>(`/schedule/session/${sessionId}/no-show`, data);
+  async markSessionNoShow(
+    sessionId: string,
+    data: {
+      notes?: string;
+      updatedBy: string;
+    }
+  ): Promise<Session> {
+    return apiService.patch<Session>(
+      `/schedule/session/${sessionId}/no-show`,
+      data
+    );
   }
 
-  async cancelSession(sessionId: string, data: {
-    cancellationReason: string;
-    updatedBy: string;
-  }): Promise<Session> {
-    return apiService.patch<Session>(`/schedule/session/${sessionId}/cancel`, data);
+  async cancelSession(
+    sessionId: string,
+    data: {
+      cancellationReason: string;
+      updatedBy: string;
+    }
+  ): Promise<Session> {
+    return apiService.patch<Session>(
+      `/schedule/session/${sessionId}/cancel`,
+      data
+    );
   }
 
   // Calendar integration
@@ -151,17 +196,19 @@ export class SessionService {
     endDate: string;
     userId?: string;
     includeTimeOff?: boolean;
-  }): Promise<{
-    id: string;
-    title: string;
-    start: string;
-    end: string;
-    type: 'session' | 'time-off';
-    status: SessionStatus;
-    clientName?: string;
-    rbtName?: string;
-    location?: string;
-  }[]> {
+  }): Promise<
+    {
+      id: string;
+      title: string;
+      start: string;
+      end: string;
+      type: 'session' | 'time-off';
+      status: SessionStatus;
+      clientName?: string;
+      rbtName?: string;
+      location?: string;
+    }[]
+  > {
     return apiService.get('/schedule/calendar-events', params);
   }
 

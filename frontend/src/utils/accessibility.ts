@@ -1,10 +1,15 @@
 // Accessibility utilities and helpers for WCAG 2.1 AA compliance
 
+type AriaPriority = 'polite' | 'assertive';
+type NavigationOrientation = 'horizontal' | 'vertical' | 'both';
+type NavigationDirection = 1 | -1;
+type AriaCheckedState = boolean | 'mixed';
+
 /**
  * Focus management utilities
  */
 export class FocusManager {
-  private focusStack: HTMLElement[] = [];
+  private readonly focusStack: HTMLElement[] = [];
   private trapElement: HTMLElement | null = null;
   private previousActiveElement: Element | null = null;
 
@@ -14,7 +19,7 @@ export class FocusManager {
   trapFocus(element: HTMLElement) {
     this.previousActiveElement = document.activeElement;
     this.trapElement = element;
-    
+
     const focusableElements = this.getFocusableElements(element);
     if (focusableElements.length === 0) return;
 
@@ -44,27 +49,25 @@ export class FocusManager {
   /**
    * Handle keydown events for focus trap
    */
-  private handleTrapKeydown = (event: KeyboardEvent) => {
+  private readonly handleTrapKeydown = (event: KeyboardEvent) => {
     if (event.key !== 'Tab' || !this.trapElement) return;
 
     const focusableElements = this.getFocusableElements(this.trapElement);
     if (focusableElements.length === 0) return;
 
     const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
+    const lastElement = focusableElements.at(-1);
 
     if (event.shiftKey) {
       // Shift + Tab
       if (document.activeElement === firstElement) {
         event.preventDefault();
-        lastElement.focus();
+        lastElement?.focus();
       }
-    } else {
+    } else if (document.activeElement === lastElement) {
       // Tab
-      if (document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
+      event.preventDefault();
+      firstElement.focus();
     }
   };
 
@@ -82,13 +85,16 @@ export class FocusManager {
       '[contenteditable="true"]',
     ].join(', ');
 
-    const elements = Array.from(container.querySelectorAll(focusableSelectors)) as HTMLElement[];
-    
+    const elements = Array.from(container.querySelectorAll(focusableSelectors));
+
     return elements.filter(element => {
-      return element.offsetWidth > 0 && 
-             element.offsetHeight > 0 && 
-             !element.hasAttribute('hidden');
-    });
+      const htmlElement = element as HTMLElement;
+      return (
+        htmlElement.offsetWidth > 0 &&
+        htmlElement.offsetHeight > 0 &&
+        !element.hasAttribute('hidden')
+      );
+    }) as HTMLElement[];
   }
 
   /**
@@ -115,8 +121,12 @@ export class FocusManager {
    * Move focus to next focusable element
    */
   focusNext(container?: HTMLElement) {
-    const focusableElements = this.getFocusableElements(container || document.body);
-    const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
+    const focusableElements = this.getFocusableElements(
+      container || document.body
+    );
+    const currentIndex = focusableElements.indexOf(
+      document.activeElement as HTMLElement
+    );
     const nextIndex = (currentIndex + 1) % focusableElements.length;
     focusableElements[nextIndex]?.focus();
   }
@@ -125,9 +135,14 @@ export class FocusManager {
    * Move focus to previous focusable element
    */
   focusPrevious(container?: HTMLElement) {
-    const focusableElements = this.getFocusableElements(container || document.body);
-    const currentIndex = focusableElements.indexOf(document.activeElement as HTMLElement);
-    const prevIndex = currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
+    const focusableElements = this.getFocusableElements(
+      container || document.body
+    );
+    const currentIndex = focusableElements.indexOf(
+      document.activeElement as HTMLElement
+    );
+    const prevIndex =
+      currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1;
     focusableElements[prevIndex]?.focus();
   }
 }
@@ -160,7 +175,7 @@ export class ScreenReaderUtils {
   /**
    * Announce message to screen readers
    */
-  announce(message: string, priority: 'polite' | 'assertive' = 'polite') {
+  announce(message: string, priority: AriaPriority = 'polite') {
     if (!this.announceElement) return;
 
     this.announceElement.setAttribute('aria-live', priority);
@@ -229,7 +244,11 @@ export class ColorContrastUtils {
   /**
    * Check if color combination meets WCAG AA standards
    */
-  static meetsWCAGAA(foreground: string, background: string, isLargeText = false): boolean {
+  static meetsWCAGAA(
+    foreground: string,
+    background: string,
+    isLargeText = false
+  ): boolean {
     const ratio = this.getContrastRatio(foreground, background);
     return isLargeText ? ratio >= 3 : ratio >= 4.5;
   }
@@ -237,7 +256,11 @@ export class ColorContrastUtils {
   /**
    * Check if color combination meets WCAG AAA standards
    */
-  static meetsWCAGAAA(foreground: string, background: string, isLargeText = false): boolean {
+  static meetsWCAGAAA(
+    foreground: string,
+    background: string,
+    isLargeText = false
+  ): boolean {
     const ratio = this.getContrastRatio(foreground, background);
     return isLargeText ? ratio >= 4.5 : ratio >= 7;
   }
@@ -245,21 +268,25 @@ export class ColorContrastUtils {
   /**
    * Convert hex color to RGB
    */
-  private static hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  private static hexToRgb(
+    hex: string
+  ): { r: number; g: number; b: number } | null {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
+    return result
+      ? {
+          r: Number.parseInt(result[1], 16),
+          g: Number.parseInt(result[2], 16),
+          b: Number.parseInt(result[3], 16),
+        }
+      : null;
   }
 
   /**
    * Get accessible color suggestions
    */
   static getAccessibleColor(
-    targetColor: string, 
-    backgroundColor: string, 
+    targetColor: string,
+    backgroundColor: string,
     isLargeText = false
   ): string {
     if (this.meetsWCAGAA(targetColor, backgroundColor, isLargeText)) {
@@ -303,22 +330,22 @@ export class ColorContrastUtils {
    * Convert RGB to hex
    */
   private static rgbToHex(r: number, g: number, b: number): string {
-    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   }
 }
 
 /**
  * Keyboard navigation utilities
  */
-export class KeyboardNavigation {
+export class KeyboardNavigationUtils {
   /**
-   * Handle arrow key navigation for lists and grids
+   * Handle arrow key navigation within a container
    */
   static handleArrowNavigation(
     event: KeyboardEvent,
     container: HTMLElement,
     options: {
-      orientation?: 'horizontal' | 'vertical' | 'both';
+      orientation?: NavigationOrientation;
       wrap?: boolean;
       itemSelector?: string;
     } = {}
@@ -326,53 +353,142 @@ export class KeyboardNavigation {
     const {
       orientation = 'both',
       wrap = true,
-      itemSelector = '[role="option"], [role="menuitem"], [role="gridcell"], button, a'
+      itemSelector = '[role="option"], [role="menuitem"], [role="gridcell"], button, a',
     } = options;
 
-    const items = Array.from(container.querySelectorAll(itemSelector)) as HTMLElement[];
+    const items = Array.from(
+      container.querySelectorAll<HTMLElement>(itemSelector)
+    );
     const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-    
+
     if (currentIndex === -1) return;
 
-    let nextIndex = currentIndex;
-
-    switch (event.key) {
-      case 'ArrowDown':
-        if (orientation === 'vertical' || orientation === 'both') {
-          event.preventDefault();
-          nextIndex = wrap ? (currentIndex + 1) % items.length : Math.min(currentIndex + 1, items.length - 1);
-        }
-        break;
-      case 'ArrowUp':
-        if (orientation === 'vertical' || orientation === 'both') {
-          event.preventDefault();
-          nextIndex = wrap ? (currentIndex - 1 + items.length) % items.length : Math.max(currentIndex - 1, 0);
-        }
-        break;
-      case 'ArrowRight':
-        if (orientation === 'horizontal' || orientation === 'both') {
-          event.preventDefault();
-          nextIndex = wrap ? (currentIndex + 1) % items.length : Math.min(currentIndex + 1, items.length - 1);
-        }
-        break;
-      case 'ArrowLeft':
-        if (orientation === 'horizontal' || orientation === 'both') {
-          event.preventDefault();
-          nextIndex = wrap ? (currentIndex - 1 + items.length) % items.length : Math.max(currentIndex - 1, 0);
-        }
-        break;
-      case 'Home':
-        event.preventDefault();
-        nextIndex = 0;
-        break;
-      case 'End':
-        event.preventDefault();
-        nextIndex = items.length - 1;
-        break;
-    }
+    const nextIndex = this.getNextIndex(
+      event,
+      currentIndex,
+      items.length,
+      orientation,
+      wrap
+    );
 
     if (nextIndex !== currentIndex && items[nextIndex]) {
       items[nextIndex].focus();
+    }
+  }
+
+  /**
+   * Get next index based on keyboard event
+   */
+  private static getNextIndex(
+    event: KeyboardEvent,
+    currentIndex: number,
+    itemCount: number,
+    orientation: NavigationOrientation,
+    wrap: boolean
+  ): number {
+    switch (event.key) {
+      case 'ArrowDown':
+        return this.handleVerticalNavigation(
+          event,
+          currentIndex,
+          itemCount,
+          orientation,
+          wrap,
+          1
+        );
+      case 'ArrowUp':
+        return this.handleVerticalNavigation(
+          event,
+          currentIndex,
+          itemCount,
+          orientation,
+          wrap,
+          -1
+        );
+      case 'ArrowRight':
+        return this.handleHorizontalNavigation(
+          event,
+          currentIndex,
+          itemCount,
+          orientation,
+          wrap,
+          1
+        );
+      case 'ArrowLeft':
+        return this.handleHorizontalNavigation(
+          event,
+          currentIndex,
+          itemCount,
+          orientation,
+          wrap,
+          -1
+        );
+      case 'Home':
+        event.preventDefault();
+        return 0;
+      case 'End':
+        event.preventDefault();
+        return itemCount - 1;
+      default:
+        return currentIndex;
+    }
+  }
+
+  /**
+   * Handle vertical navigation
+   */
+  private static handleVerticalNavigation(
+    event: KeyboardEvent,
+    currentIndex: number,
+    itemCount: number,
+    orientation: NavigationOrientation,
+    wrap: boolean,
+    direction: NavigationDirection
+  ): number {
+    if (orientation !== 'vertical' && orientation !== 'both') {
+      return currentIndex;
+    }
+
+    event.preventDefault();
+    return this.calculateNewIndex(currentIndex, itemCount, wrap, direction);
+  }
+
+  /**
+   * Handle horizontal navigation
+   */
+  private static handleHorizontalNavigation(
+    event: KeyboardEvent,
+    currentIndex: number,
+    itemCount: number,
+    orientation: NavigationOrientation,
+    wrap: boolean,
+    direction: NavigationDirection
+  ): number {
+    if (orientation !== 'horizontal' && orientation !== 'both') {
+      return currentIndex;
+    }
+
+    event.preventDefault();
+    return this.calculateNewIndex(currentIndex, itemCount, wrap, direction);
+  }
+
+  /**
+   * Calculate new index with wrap or boundary logic
+   */
+  private static calculateNewIndex(
+    currentIndex: number,
+    itemCount: number,
+    wrap: boolean,
+    direction: NavigationDirection
+  ): number {
+    if (direction === 1) {
+      return wrap
+        ? (currentIndex + 1) % itemCount
+        : Math.min(currentIndex + 1, itemCount - 1);
+    } else {
+      return wrap
+        ? (currentIndex - 1 + itemCount) % itemCount
+        : Math.max(currentIndex - 1, 0);
     }
   }
 
@@ -405,7 +521,7 @@ export class AriaUtils {
    * Generate unique ID for ARIA relationships
    */
   static generateId(prefix = 'aria'): string {
-    return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
+    return `${prefix}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**
@@ -414,7 +530,7 @@ export class AriaUtils {
   static setDescribedBy(element: HTMLElement, descriptionId: string) {
     const existingIds = element.getAttribute('aria-describedby') || '';
     const ids = existingIds.split(' ').filter(id => id.length > 0);
-    
+
     if (!ids.includes(descriptionId)) {
       ids.push(descriptionId);
       element.setAttribute('aria-describedby', ids.join(' '));
@@ -427,7 +543,7 @@ export class AriaUtils {
   static removeDescribedBy(element: HTMLElement, descriptionId: string) {
     const existingIds = element.getAttribute('aria-describedby') || '';
     const ids = existingIds.split(' ').filter(id => id !== descriptionId);
-    
+
     if (ids.length > 0) {
       element.setAttribute('aria-describedby', ids.join(' '));
     } else {
@@ -459,19 +575,22 @@ export class AriaUtils {
   /**
    * Set ARIA checked state
    */
-  static setChecked(element: HTMLElement, checked: boolean | 'mixed') {
+  static setChecked(element: HTMLElement, checked: AriaCheckedState) {
     element.setAttribute('aria-checked', checked.toString());
   }
 
   /**
-   * Set ARIA disabled state
+   * Set ARIA disabled state to true
    */
-  static setDisabled(element: HTMLElement, disabled: boolean) {
-    if (disabled) {
-      element.setAttribute('aria-disabled', 'true');
-    } else {
-      element.removeAttribute('aria-disabled');
-    }
+  static setAriaDisabled(element: HTMLElement) {
+    element.setAttribute('aria-disabled', 'true');
+  }
+
+  /**
+   * Remove ARIA disabled state
+   */
+  static removeAriaDisabled(element: HTMLElement) {
+    element.removeAttribute('aria-disabled');
   }
 }
 
@@ -487,6 +606,7 @@ export const useAccessibility = () => {
     focusManager: globalFocusManager,
     screenReader: globalScreenReader,
     generateId: AriaUtils.generateId,
-    announceToScreenReader: globalScreenReader.announce.bind(globalScreenReader),
+    announceToScreenReader:
+      globalScreenReader.announce.bind(globalScreenReader),
   };
 };

@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import {
+import type {
   User,
   CreateUserRequest,
   UpdateUserRequest,
@@ -87,11 +87,17 @@ export class UserService {
     isActive?: boolean;
     search?: string;
   }): Promise<PaginatedResponse<Client>> {
-    return apiService.get<PaginatedResponse<Client>>('/users/role/client_family', params);
+    return apiService.get<PaginatedResponse<Client>>(
+      '/users/role/client_family',
+      params
+    );
   }
 
   async createClient(data: CreateClientRequest): Promise<Client> {
-    return apiService.post<Client>('/users', { ...data, role: 'client_family' });
+    return apiService.post<Client>('/users', {
+      ...data,
+      role: 'client_family',
+    });
   }
 
   async updateClient(id: string, data: UpdateClientRequest): Promise<Client> {
@@ -103,10 +109,13 @@ export class UserService {
   }
 
   // Search operations
-  async searchUsers(query: string, filters?: {
-    role?: UserRole;
-    isActive?: boolean;
-  }): Promise<User[]> {
+  async searchUsers(
+    query: string,
+    filters?: {
+      role?: UserRole;
+      isActive?: boolean;
+    }
+  ): Promise<User[]> {
     return apiService.get<User[]>('/users', { search: query, ...filters });
   }
 }

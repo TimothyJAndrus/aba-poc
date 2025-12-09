@@ -3,7 +3,9 @@ import * as Sentry from '@sentry/react';
 export const initSentry = () => {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
   const environment = import.meta.env.VITE_ENVIRONMENT || 'development';
-  const release = import.meta.env.VITE_SENTRY_RELEASE || `aba-scheduling-ui@${import.meta.env.VITE_APP_VERSION}`;
+  const release =
+    import.meta.env.VITE_SENTRY_RELEASE ||
+    `aba-scheduling-ui@${import.meta.env.VITE_APP_VERSION}`;
 
   if (!dsn) {
     console.warn('Sentry DSN not configured. Error monitoring disabled.');
@@ -16,9 +18,7 @@ export const initSentry = () => {
     release,
 
     // Performance monitoring
-    integrations: [
-      Sentry.browserTracingIntegration(),
-    ],
+    integrations: [Sentry.browserTracingIntegration()],
 
     // Set sampling rate for performance monitoring
     tracePropagationTargets: [
@@ -29,13 +29,13 @@ export const initSentry = () => {
 
     // Capture 100% of the transactions for performance monitoring in development
     // Reduce this in production
-    tracesSampleRate: environment === 'development' ? 1.0 : 0.1,
+    tracesSampleRate: environment === 'development' ? 1 : 0.1,
 
     // Capture 100% of the sessions for release health
-    replaysSessionSampleRate: environment === 'development' ? 1.0 : 0.1,
+    replaysSessionSampleRate: environment === 'development' ? 1 : 0.1,
 
     // Capture 100% of the sessions on error
-    replaysOnErrorSampleRate: 1.0,
+    replaysOnErrorSampleRate: 1,
 
     // Configure error filtering
     beforeSend(event, hint) {
@@ -50,14 +50,18 @@ export const initSentry = () => {
 
         // Filter out network errors that are not actionable
         if (error instanceof Error) {
-          if (error.message.includes('Network Error') ||
-            error.message.includes('Failed to fetch')) {
+          if (
+            error.message.includes('Network Error') ||
+            error.message.includes('Failed to fetch')
+          ) {
             return null;
           }
 
           // Filter out WebSocket connection errors in development
-          if (environment === 'development' &&
-            error.message.includes('WebSocket')) {
+          if (
+            environment === 'development' &&
+            error.message.includes('WebSocket')
+          ) {
             return null;
           }
         }
@@ -75,10 +79,7 @@ export const initSentry = () => {
     },
 
     // Configure allowed URLs
-    allowUrls: [
-      /https:\/\/.*\.aba-scheduling\.com/,
-      /http:\/\/localhost/,
-    ],
+    allowUrls: [/https:\/\/.*\.aba-scheduling\.com/, /http:\/\/localhost/],
 
     // Configure denied URLs
     denyUrls: [
@@ -94,12 +95,8 @@ export const initSentry = () => {
     // Configure debug mode
     debug: environment === 'development',
 
-
-
     // Configure send default PII
     sendDefaultPii: false,
-
-
   });
 };
 
@@ -124,7 +121,12 @@ export const clearSentryUser = () => {
 };
 
 // Helper function to add breadcrumb
-export const addSentryBreadcrumb = (message: string, category: string, level: Sentry.SeverityLevel = 'info', data?: any) => {
+export const addSentryBreadcrumb = (
+  message: string,
+  category: string,
+  level: Sentry.SeverityLevel = 'info',
+  data?: Record<string, unknown>
+) => {
   Sentry.addBreadcrumb({
     message,
     category,
@@ -135,24 +137,37 @@ export const addSentryBreadcrumb = (message: string, category: string, level: Se
 };
 
 // Helper function to capture exception
-export const captureSentryException = (error: Error, context?: Record<string, any>) => {
-  Sentry.withScope((scope) => {
+export const captureSentryException = (
+  error: Error,
+  context?: Record<string, unknown>
+) => {
+  Sentry.withScope(scope => {
     if (context) {
-      Object.keys(context).forEach(key => {
-        scope.setContext(key, context[key]);
-      });
+      for (const key of Object.keys(context)) {
+        const value = context[key];
+        if (value && typeof value === 'object') {
+          scope.setContext(key, value as Record<string, unknown>);
+        }
+      }
     }
     Sentry.captureException(error);
   });
 };
 
 // Helper function to capture message
-export const captureSentryMessage = (message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>) => {
-  Sentry.withScope((scope) => {
+export const captureSentryMessage = (
+  message: string,
+  level: Sentry.SeverityLevel = 'info',
+  context?: Record<string, unknown>
+) => {
+  Sentry.withScope(scope => {
     if (context) {
-      Object.keys(context).forEach(key => {
-        scope.setContext(key, context[key]);
-      });
+      for (const key of Object.keys(context)) {
+        const value = context[key];
+        if (value && typeof value === 'object') {
+          scope.setContext(key, value as Record<string, unknown>);
+        }
+      }
     }
     Sentry.captureMessage(message, level);
   });
@@ -160,7 +175,7 @@ export const captureSentryMessage = (message: string, level: Sentry.SeverityLeve
 
 // Performance monitoring helpers
 export const startSentrySpan = (name: string, op: string) => {
-  return Sentry.startSpan({ name, op }, (span) => {
+  return Sentry.startSpan({ name, op }, span => {
     return span;
   });
 };
